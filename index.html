@@ -101,53 +101,53 @@ tables published in Congressional appropriations committee reports. Data is auto
 </div>
 <div class="st">Appropriations Subcommittees</div>
 <div class="sg">
-        <div class="sub-card" onclick="openSub('Agriculture')">
+        <div class="scd" onclick="openSub('Agriculture')">
             <h3>Agriculture</h3>
-            <div class="meta-row"><span class="badge house">FY2026 H</span><span class="badge house">FY2025 H</span></div>
+            <div class="mr"><span class="badge house">FY2026 H</span><span class="badge house">FY2025 H</span></div>
         </div>
-        <div class="sub-card" onclick="openSub('Commerce-Justice-Science')">
+        <div class="scd" onclick="openSub('Commerce-Justice-Science')">
             <h3>Commerce-Justice-Science</h3>
-            <div class="meta-row"><span class="badge house">FY2026 H</span><span class="badge house">FY2025 H</span></div>
+            <div class="mr"><span class="badge house">FY2026 H</span><span class="badge house">FY2025 H</span></div>
         </div>
-        <div class="sub-card" onclick="openSub('Defense')">
+        <div class="scd" onclick="openSub('Defense')">
             <h3>Defense</h3>
-            <div class="meta-row"><span class="badge house">FY2026 H</span><span class="badge house">FY2025 H</span></div>
+            <div class="mr"><span class="badge house">FY2026 H</span><span class="badge house">FY2025 H</span></div>
         </div>
-        <div class="sub-card" onclick="openSub('Energy-Water')">
+        <div class="scd" onclick="openSub('Energy-Water')">
             <h3>Energy-Water</h3>
-            <div class="meta-row"><span class="badge house">FY2026 H</span></div>
+            <div class="mr"><span class="badge house">FY2026 H</span></div>
         </div>
-        <div class="sub-card" onclick="openSub('Financial Services')">
+        <div class="scd" onclick="openSub('Financial Services')">
             <h3>Financial Services</h3>
-            <div class="meta-row"><span class="badge house">FY2026 H</span><span class="badge house">FY2025 H</span></div>
+            <div class="mr"><span class="badge house">FY2026 H</span><span class="badge house">FY2025 H</span></div>
         </div>
-        <div class="sub-card" onclick="openSub('Homeland Security')">
+        <div class="scd" onclick="openSub('Homeland Security')">
             <h3>Homeland Security</h3>
-            <div class="meta-row"><span class="badge house">FY2026 H</span><span class="badge house">FY2025 H</span></div>
+            <div class="mr"><span class="badge house">FY2026 H</span><span class="badge house">FY2025 H</span></div>
         </div>
-        <div class="sub-card" onclick="openSub('Interior-Environment')">
+        <div class="scd" onclick="openSub('Interior-Environment')">
             <h3>Interior-Environment</h3>
-            <div class="meta-row"><span class="badge house">FY2025 H</span></div>
+            <div class="mr"><span class="badge house">FY2025 H</span></div>
         </div>
-        <div class="sub-card" onclick="openSub('Labor-HHS-Education')">
+        <div class="scd" onclick="openSub('Labor-HHS-Education')">
             <h3>Labor-HHS-Education</h3>
-            <div class="meta-row"><span class="badge house">FY2025 H</span></div>
+            <div class="mr"><span class="badge house">FY2025 H</span></div>
         </div>
-        <div class="sub-card" onclick="openSub('Legislative Branch')">
+        <div class="scd" onclick="openSub('Legislative Branch')">
             <h3>Legislative Branch</h3>
-            <div class="meta-row"><span class="badge house">FY2026 H</span><span class="badge senate">FY2026 S</span><span class="badge house">FY2025 H</span></div>
+            <div class="mr"><span class="badge house">FY2026 H</span><span class="badge senate">FY2026 S</span><span class="badge house">FY2025 H</span></div>
         </div>
-        <div class="sub-card" onclick="openSub('Military Construction-VA')">
+        <div class="scd" onclick="openSub('Military Construction-VA')">
             <h3>Military Construction-VA</h3>
-            <div class="meta-row"><span class="badge house">FY2026 H</span><span class="badge house">FY2025 H</span></div>
+            <div class="mr"><span class="badge house">FY2026 H</span><span class="badge house">FY2025 H</span></div>
         </div>
-        <div class="sub-card" onclick="openSub('National Security-State')">
+        <div class="scd" onclick="openSub('National Security-State')">
             <h3>National Security-State</h3>
-            <div class="meta-row"><span class="badge house">FY2026 H</span></div>
+            <div class="mr"><span class="badge house">FY2026 H</span></div>
         </div>
-        <div class="sub-card" onclick="openSub('Transportation-HUD')">
+        <div class="scd" onclick="openSub('Transportation-HUD')">
             <h3>Transportation-HUD</h3>
-            <div class="meta-row"><span class="badge house">FY2026 H</span></div>
+            <div class="mr"><span class="badge house">FY2026 H</span></div>
         </div></div>
 <footer>Data from <a href="https://www.congress.gov/crs-appropriations-status-table" target="_blank">congress.gov</a> committee reports. Amounts in thousands of dollars. Extracted using Claude AI from PDF tables.</footer>
 </div>
@@ -211,7 +211,7 @@ for(const[ab,full] of Object.entries(abbr)){if(ab.toLowerCase()===ql){expanded=f
 const results=[];
 for(const d of aSD){const m=d.metadata;const cols=d.columns||[];
 let ri=2;for(let i=0;i<cols.length;i++){const cl=cols[i].toLowerCase();if((cl.includes('bill')||cl.includes('recommend'))&&!cl.includes('vs')){ri=i;break;}}
-for(const it of d.line_items||[]){const nl=it.name.toLowerCase();
+for(const it of d.line_items||[]){if(!it.name)continue;const nl=it.name.toLowerCase();
 if(nl.includes(ql)||(expanded&&nl.includes(expanded))){
 const amt=it.amounts&&ri<it.amounts.length?it.amounts[ri]:null;
 results.push({name:it.name,sub:m.subcommittee,fy:m.fiscal_year,src:m.source_type,amt});
