@@ -16,7 +16,7 @@ import pdfplumber
 from io import BytesIO
 from PIL import Image
 
-API_KEY = "REDACTED"
+API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 
 client = anthropic.Anthropic(api_key=API_KEY)
 

@@ -12,7 +12,7 @@ import time
 import requests
 
 # congress.gov API key
-CONGRESS_API_KEY = "REDACTED"
+CONGRESS_API_KEY = os.environ.get("CONGRESS_API_KEY", "DEMO_KEY")
 
 # Standard User-Agent for congress.gov requests
 HEADERS = {
