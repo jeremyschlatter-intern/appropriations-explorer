@@ -1,248 +1,113 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Appropriations Line Items Explorer</title>
-    <meta name="description" content="Browse Congressional appropriations spending data extracted from committee reports. Track line-item spending across fiscal years for all 12 appropriations subcommittees.">
-    <style>
-        :root {
-            --navy: #1a2744;
-            --blue: #2a5298;
-            --light-blue: #3d7edb;
-            --pale-blue: #e8f0fe;
-            --bg: #f5f7fa;
-            --card-bg: #ffffff;
-            --border: #dce3ed;
-            --text: #2c3e50;
-            --text-light: #7f8c9b;
-            --green: #27ae60;
-            --red: #c0392b;
-            --shadow: 0 1px 4px rgba(0,0,0,0.08);
-            --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: var(--bg); color: var(--text); line-height: 1.6;
-        }
-        header {
-            background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 100%);
-            color: white; padding: 1.25rem 2rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-            position: sticky; top: 0; z-index: 100;
-        }
-        .header-inner {
-            max-width: 1500px; margin: 0 auto;
-            display: flex; align-items: center; justify-content: space-between;
-        }
-        header h1 { font-size: 1.3rem; font-weight: 600; }
-        header .subtitle { font-size: 0.82rem; opacity: 0.75; margin-top: 0.1rem; }
-        .header-search {
-            display: flex; align-items: center;
-            background: rgba(255,255,255,0.15); border-radius: 6px; padding: 0.35rem 0.75rem;
-        }
-        .header-search input {
-            background: transparent; border: none; color: white;
-            font-size: 0.85rem; width: 280px; outline: none;
-        }
-        .header-search input::placeholder { color: rgba(255,255,255,0.5); }
-        .container { max-width: 1500px; margin: 0 auto; padding: 1.25rem 1.5rem; }
-        .stats-row { display: flex; gap: 0.75rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
-        .stat-card {
-            background: var(--card-bg); border-radius: 8px; padding: 0.75rem 1rem;
-            flex: 1; min-width: 150px; box-shadow: var(--shadow);
-            display: flex; align-items: center; gap: 0.75rem;
-        }
-        .stat-icon {
-            width: 36px; height: 36px; border-radius: 8px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.1rem; flex-shrink: 0;
-        }
-        .stat-icon.blue { background: var(--pale-blue); }
-        .stat-icon.green { background: #e8f5e9; }
-        .stat-icon.gold { background: #fff8e1; }
-        .stat-icon.red { background: #fce4ec; }
-        .stat-label { font-size: 0.7rem; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; }
-        .stat-value { font-size: 1.4rem; font-weight: 700; color: var(--navy); line-height: 1.2; }
-        .search-dropdown {
-            position: fixed; top: 60px; right: 20px; width: 500px; max-height: 400px;
-            overflow-y: auto; background: white; border-radius: 8px;
-            box-shadow: var(--shadow-md); z-index: 200; display: none;
-        }
-        .search-dropdown.active { display: block; }
-        .search-result-item {
-            padding: 0.6rem 1rem; border-bottom: 1px solid var(--border);
-            cursor: pointer; font-size: 0.85rem;
-        }
-        .search-result-item:hover { background: #f8fafc; }
-        .sr-name { font-weight: 500; }
-        .sr-meta { font-size: 0.75rem; color: var(--text-light); }
-        .sr-amount { font-weight: 600; color: var(--navy); }
-        .section-title { font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--navy); }
-        .sub-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 0.75rem; margin-bottom: 1.5rem;
-        }
-        .sub-card {
-            background: var(--card-bg); border-radius: 8px; padding: 1rem;
-            box-shadow: var(--shadow); cursor: pointer;
-            transition: transform 0.12s, box-shadow 0.12s; border-left: 3px solid var(--blue);
-        }
-        .sub-card:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
-        .sub-card h3 { font-size: 0.9rem; margin-bottom: 0.4rem; color: var(--navy); }
-        .meta-row { display: flex; flex-wrap: wrap; gap: 0.3rem; }
-        .badge {
-            display: inline-block; padding: 0.1rem 0.45rem;
-            border-radius: 10px; font-size: 0.65rem; font-weight: 500;
-        }
-        .badge.house { background: #e3f2fd; color: #1565c0; }
-        .badge.senate { background: #fce4ec; color: #c62828; }
-        .badge.conference { background: #e8f5e9; color: #2e7d32; }
-        .viewer {
-            background: var(--card-bg); border-radius: 8px;
-            box-shadow: var(--shadow-md); margin-bottom: 1.5rem;
-            display: none; overflow: hidden;
-        }
-        .viewer.active { display: block; }
-        .viewer-header {
-            padding: 0.75rem 1.25rem; background: var(--navy); color: white;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .viewer-header h2 { font-size: 1rem; font-weight: 600; }
-        .viewer-controls { display: flex; gap: 0.5rem; align-items: center; }
-        .btn {
-            padding: 0.3rem 0.7rem; border-radius: 5px;
-            border: 1px solid rgba(255,255,255,0.3); background: transparent;
-            color: white; cursor: pointer; font-size: 0.78rem; transition: background 0.15s;
-        }
-        .btn:hover { background: rgba(255,255,255,0.15); }
-        .btn-close { background: none; border: none; color: white; font-size: 1.3rem; cursor: pointer; opacity: 0.7; }
-        .btn-close:hover { opacity: 1; }
-        .tabs-bar {
-            display: flex; background: #f0f4f8; border-bottom: 1px solid var(--border); overflow-x: auto;
-        }
-        .tab {
-            padding: 0.5rem 1rem; cursor: pointer; font-size: 0.8rem; font-weight: 500;
-            color: var(--text-light); white-space: nowrap;
-            border-bottom: 2px solid transparent; transition: all 0.15s;
-        }
-        .tab:hover { color: var(--text); }
-        .tab.active { color: var(--blue); border-bottom-color: var(--blue); background: white; }
-        .table-wrap { overflow-x: auto; max-height: 70vh; overflow-y: auto; }
-        .dtable { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
-        .dtable th {
-            background: var(--navy); color: white; padding: 0.5rem 0.7rem;
-            text-align: right; white-space: nowrap; position: sticky; top: 0; z-index: 10; font-size: 0.75rem;
-        }
-        .dtable th:first-child { text-align: left; min-width: 280px; position: sticky; left: 0; z-index: 11; }
-        .dtable td {
-            padding: 0.3rem 0.7rem; border-bottom: 1px solid #eef1f5;
-            text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap;
-        }
-        .dtable td:first-child { text-align: left; position: sticky; left: 0; background: inherit; z-index: 5; }
-        .dtable tr:hover td { background: #f0f5ff !important; }
-        .dtable tr.lv0 { font-weight: 700; }
-        .dtable tr.lv0 td { background: #edf2f7; border-top: 2px solid var(--border); }
-        .dtable tr.lv1 { font-weight: 600; }
-        .dtable tr.lv1 td { background: #f5f8fb; }
-        .in0 { padding-left: 0.7rem !important; }
-        .in1 { padding-left: 1.6rem !important; }
-        .in2 { padding-left: 2.5rem !important; }
-        .in3 { padding-left: 3.4rem !important; }
-        .neg { color: var(--red); }
-        footer {
-            text-align: center; padding: 1.5rem; color: var(--text-light);
-            font-size: 0.75rem; border-top: 1px solid var(--border); margin-top: 2rem;
-        }
-        footer a { color: var(--blue); text-decoration: none; }
-        .about-section {
-            background: var(--card-bg); border-radius: 8px; padding: 1.25rem;
-            box-shadow: var(--shadow); margin-bottom: 1.25rem; font-size: 0.85rem;
-            line-height: 1.7; border-left: 3px solid var(--blue);
-        }
-        .about-section h3 { font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--navy); }
-        .about-section ul { margin: 0.5rem 0; padding-left: 1.5rem; }
-        .about-section li { margin-bottom: 0.25rem; }
-        .about-section code { background: #f0f4f8; padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.8rem; }
-        @media (max-width: 768px) {
-            .header-search input { width: 150px; }
-            .sub-grid { grid-template-columns: 1fr; }
-            .stats-row { flex-direction: column; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Appropriations Line Items Explorer</title>
+<meta name="description" content="Browse Congressional appropriations spending data by line item. Extracted from committee report PDFs covering all 12 appropriations subcommittees.">
+<style>
+:root{--navy:#1a2744;--blue:#2a5298;--lb:#3d7edb;--pb:#e8f0fe;--bg:#f5f7fa;--card:#fff;--bdr:#dce3ed;--txt:#2c3e50;--txtl:#7f8c9b;--grn:#27ae60;--red:#c0392b;--sh:0 1px 4px rgba(0,0,0,.08);--shm:0 4px 12px rgba(0,0,0,.1)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--txt);line-height:1.6}
+header{background:linear-gradient(135deg,var(--navy),var(--blue));color:#fff;padding:1.1rem 2rem;box-shadow:0 2px 8px rgba(0,0,0,.2);position:sticky;top:0;z-index:100}
+.hi{max-width:1500px;margin:0 auto;display:flex;align-items:center;justify-content:space-between}
+header h1{font-size:1.25rem;font-weight:600}
+.sub{font-size:.8rem;opacity:.7;margin-top:.1rem}
+.hs{display:flex;align-items:center;background:rgba(255,255,255,.15);border-radius:6px;padding:.35rem .75rem}
+.hs input{background:0 0;border:0;color:#fff;font-size:.85rem;width:280px;outline:0}
+.hs input::placeholder{color:rgba(255,255,255,.5)}
+.ct{max-width:1500px;margin:0 auto;padding:1.25rem 1.5rem}
+.sr{display:flex;gap:.75rem;margin-bottom:1rem;flex-wrap:wrap}
+.sc{background:var(--card);border-radius:8px;padding:.75rem 1rem;flex:1;min-width:150px;box-shadow:var(--sh);display:flex;align-items:center;gap:.75rem}
+.si{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+.si.bl{background:var(--pb)}.si.gn{background:#e8f5e9}.si.gd{background:#fff8e1}.si.rd{background:#fce4ec}
+.sl{font-size:.68rem;color:var(--txtl);text-transform:uppercase;letter-spacing:.5px}
+.sv{font-size:1.4rem;font-weight:700;color:var(--navy);line-height:1.2}
+.sd{position:fixed;top:55px;right:20px;width:500px;max-height:420px;overflow-y:auto;background:#fff;border-radius:8px;box-shadow:var(--shm);z-index:200;display:none}
+.sd.act{display:block}
+.sri{padding:.55rem 1rem;border-bottom:1px solid var(--bdr);cursor:pointer;font-size:.82rem}
+.sri:hover{background:#f8fafc}
+.srn{font-weight:500}.srm{font-size:.72rem;color:var(--txtl)}.sra{font-weight:600;color:var(--navy)}
+.st{font-size:.95rem;font-weight:600;margin-bottom:.75rem;color:var(--navy)}
+.sg{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.7rem;margin-bottom:1.5rem}
+.scd{background:var(--card);border-radius:8px;padding:.9rem;box-shadow:var(--sh);cursor:pointer;transition:transform .12s,box-shadow .12s;border-left:3px solid var(--blue)}
+.scd:hover{transform:translateY(-1px);box-shadow:var(--shm)}
+.scd h3{font-size:.87rem;margin-bottom:.35rem;color:var(--navy)}
+.mr{display:flex;flex-wrap:wrap;gap:.25rem}
+.bd{display:inline-block;padding:.08rem .4rem;border-radius:10px;font-size:.62rem;font-weight:500}
+.bd.house{background:#e3f2fd;color:#1565c0}.bd.senate{background:#fce4ec;color:#c62828}.bd.conference{background:#e8f5e9;color:#2e7d32}
+.vw{background:var(--card);border-radius:8px;box-shadow:var(--shm);margin-bottom:1.5rem;display:none;overflow:hidden}
+.vw.act{display:block}
+.vh{padding:.7rem 1.2rem;background:var(--navy);color:#fff;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem}
+.vh h2{font-size:.95rem;font-weight:600}
+.vh .rpt{font-size:.72rem;opacity:.7}
+.vh .rpt a{color:#8bb8ff;text-decoration:none}
+.vh .rpt a:hover{text-decoration:underline}
+.vc{display:flex;gap:.4rem;align-items:center}
+.btn{padding:.28rem .65rem;border-radius:5px;border:1px solid rgba(255,255,255,.3);background:0 0;color:#fff;cursor:pointer;font-size:.75rem;transition:background .15s}
+.btn:hover{background:rgba(255,255,255,.15)}
+.bcl{background:0 0;border:0;color:#fff;font-size:1.3rem;cursor:pointer;opacity:.7;line-height:1}
+.bcl:hover{opacity:1}
+.tb{display:flex;background:#f0f4f8;border-bottom:1px solid var(--bdr);overflow-x:auto}
+.t{padding:.45rem .9rem;cursor:pointer;font-size:.78rem;font-weight:500;color:var(--txtl);white-space:nowrap;border-bottom:2px solid transparent;transition:all .15s}
+.t:hover{color:var(--txt)}.t.act{color:var(--blue);border-bottom-color:var(--blue);background:#fff}
+.tw{overflow-x:auto;max-height:70vh;overflow-y:auto}
+.dt{width:100%;border-collapse:collapse;font-size:.78rem}
+.dt th{background:var(--navy);color:#fff;padding:.45rem .65rem;text-align:right;white-space:nowrap;position:sticky;top:0;z-index:10;font-size:.72rem}
+.dt th:first-child{text-align:left;min-width:280px;position:sticky;left:0;z-index:11}
+.dt td{padding:.28rem .65rem;border-bottom:1px solid #eef1f5;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dt td:first-child{text-align:left;position:sticky;left:0;background:inherit;z-index:5}
+.dt tr:hover td{background:#f0f5ff!important}
+.dt tr.lv0{font-weight:700}.dt tr.lv0 td{background:#edf2f7;border-top:2px solid var(--bdr)}
+.dt tr.lv1{font-weight:600}.dt tr.lv1 td{background:#f5f8fb}
+.dt tr.hl td{background:#fff3cd!important}
+.in0{padding-left:.7rem!important}.in1{padding-left:1.5rem!important}.in2{padding-left:2.3rem!important}.in3{padding-left:3.1rem!important}
+.neg{color:var(--red)}
+footer{text-align:center;padding:1.5rem;color:var(--txtl);font-size:.72rem;border-top:1px solid var(--bdr);margin-top:2rem}
+footer a{color:var(--blue);text-decoration:none}
+.ab{background:var(--card);border-radius:8px;padding:1.1rem 1.2rem;box-shadow:var(--sh);margin-bottom:1rem;font-size:.82rem;line-height:1.65;border-left:3px solid var(--blue)}
+.ab h3{font-size:.9rem;margin-bottom:.4rem;color:var(--navy)}
+.ab ul{margin:.4rem 0;padding-left:1.4rem}.ab li{margin-bottom:.2rem}
+@media(max-width:768px){.hs input{width:150px}.sg{grid-template-columns:1fr}.sr{flex-direction:column}.sd{width:calc(100vw - 20px);right:10px}}
+</style>
 </head>
 <body>
-    <header>
-        <div class="header-inner">
-            <div>
-                <h1>Appropriations Line Items Explorer</h1>
-                <div class="subtitle">Congressional spending data extracted from committee reports</div>
-            </div>
-            <div class="header-search">
-                <span style="opacity:0.5;margin-right:0.5rem">&#128269;</span>
-                <input type="text" id="globalSearch" placeholder="Search line items..." oninput="doSearch(this.value)">
-            </div>
-        </div>
-    </header>
-    <div class="search-dropdown" id="searchDrop"></div>
-    <div class="container">
-        <div class="about-section">
-            <h3>About This Tool</h3>
-            <p>This tool extracts and organizes line-item spending data from Congressional appropriations
-            committee reports. Each appropriations subcommittee publishes a <strong>Comparative Statement
-            of New Budget Authority</strong> at the end of its committee report, showing spending for every
-            program and agency. This data has been automatically extracted from those PDF tables and made
-            searchable and downloadable.</p>
-            <ul>
-                <li>Click any subcommittee card to view its line items</li>
-                <li>Switch between fiscal years and House/Senate versions using the tabs</li>
-                <li>Search for any program, office, or agency across all reports</li>
-                <li>Export data as CSV for use in spreadsheets</li>
-            </ul>
-            <p>Amounts are in <strong>thousands of dollars</strong>. Data source:
-            <a href="https://www.congress.gov/crs-appropriations-status-table">CRS Appropriations Status Table</a>.</p>
-        </div>
-        <div class="stats-row">
-            <div class="stat-card">
-                <div class="stat-icon blue">&#127963;</div>
-                <div><div class="stat-label">Subcommittees</div><div class="stat-value">12</div></div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon green">&#128196;</div>
-                <div><div class="stat-label">Reports</div><div class="stat-value">18</div></div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon gold">&#128200;</div>
-                <div><div class="stat-label">Line Items</div><div class="stat-value">7,185</div></div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-icon red">&#128197;</div>
-                <div><div class="stat-label">Fiscal Years</div><div class="stat-value">2</div></div>
-            </div>
-        </div>
-        <div class="viewer" id="viewer">
-            <div class="viewer-header">
-                <h2 id="vTitle"></h2>
-                <div class="viewer-controls">
-                    <button class="btn" onclick="exportCSV()">&#8615; Export CSV</button>
-                    <button class="btn-close" onclick="closeViewer()">&times;</button>
-                </div>
-            </div>
-            <div class="tabs-bar" id="tabs"></div>
-            <div class="table-wrap">
-                <table class="dtable"><thead id="tHead"></thead><tbody id="tBody"></tbody></table>
-            </div>
-        </div>
-        <div class="section-title">Appropriations Subcommittees</div>
-        <div class="sub-grid">
+<header><div class="hi"><div><h1>Appropriations Line Items Explorer</h1><div class="sub">Congressional spending data extracted from committee reports</div></div>
+<div class="hs"><span style="opacity:.5;margin-right:.5rem">&#128269;</span><input type="text" id="gs" placeholder="Search line items (try FBI, NASA, Capitol Police...)" oninput="doSearch(this.value)"></div></div></header>
+<div class="sd" id="sd"></div>
+<div class="ct">
+<div class="ab"><h3>About This Tool</h3>
+<p>This tool extracts line-item spending data from the <strong>Comparative Statement of New Budget Authority</strong>
+tables published in Congressional appropriations committee reports. Data is automatically extracted from
+<a href="https://www.congress.gov/crs-appropriations-status-table">committee report PDFs on congress.gov</a>.</p>
+<ul>
+<li>Click a subcommittee to view its line items, with tabs for each fiscal year and chamber</li>
+<li>Search across all reports by program name or common abbreviations (FBI, NASA, EPA, etc.)</li>
+<li>Export any table as CSV for spreadsheet analysis</li>
+<li>Click the report number link to view the original source PDF</li>
+</ul>
+<p>Amounts are in <strong>thousands of dollars</strong>.</p></div>
+<div class="sr">
+<div class="sc"><div class="si bl">&#127963;</div><div><div class="sl">Subcommittees</div><div class="sv">12</div></div></div>
+<div class="sc"><div class="si gn">&#128196;</div><div><div class="sl">Reports</div><div class="sv">20</div></div></div>
+<div class="sc"><div class="si gd">&#128200;</div><div><div class="sl">Line Items</div><div class="sv">7,817</div></div></div>
+<div class="sc"><div class="si rd">&#128197;</div><div><div class="sl">Fiscal Years</div><div class="sv">2</div></div></div>
+</div>
+<div class="vw" id="vw">
+<div class="vh"><div><h2 id="vt"></h2><div class="rpt" id="vrpt"></div></div>
+<div class="vc"><button class="btn" onclick="exportCSV()">&#8615; Export CSV</button><button class="bcl" onclick="closeV()">&times;</button></div></div>
+<div class="tb" id="tabs"></div>
+<div class="tw"><table class="dt"><thead id="th"></thead><tbody id="tbody"></tbody></table></div>
+</div>
+<div class="st">Appropriations Subcommittees</div>
+<div class="sg">
         <div class="sub-card" onclick="openSub('Agriculture')">
             <h3>Agriculture</h3>
-            <div class="meta-row"><span class="badge house">FY2026 H</span></div>
+            <div class="meta-row"><span class="badge house">FY2026 H</span><span class="badge house">FY2025 H</span></div>
         </div>
         <div class="sub-card" onclick="openSub('Commerce-Justice-Science')">
             <h3>Commerce-Justice-Science</h3>
-            <div class="meta-row"><span class="badge house">FY2026 H</span></div>
+            <div class="meta-row"><span class="badge house">FY2026 H</span><span class="badge house">FY2025 H</span></div>
         </div>
         <div class="sub-card" onclick="openSub('Defense')">
             <h3>Defense</h3>
@@ -283,159 +148,94 @@
         <div class="sub-card" onclick="openSub('Transportation-HUD')">
             <h3>Transportation-HUD</h3>
             <div class="meta-row"><span class="badge house">FY2026 H</span></div>
-        </div>
-        </div>
-        <footer>
-            Data extracted from committee reports on
-            <a href="https://www.congress.gov/crs-appropriations-status-table" target="_blank">congress.gov</a>.
-            Amounts in thousands of dollars. Extracted using Claude AI from PDF tables.
-        </footer>
-    </div>
-    <script>
-    let curData=null, curSub=null, dataIndex=null, allSearchData=[];
+        </div></div>
+<footer>Data from <a href="https://www.congress.gov/crs-appropriations-status-table" target="_blank">congress.gov</a> committee reports. Amounts in thousands of dollars. Extracted using Claude AI from PDF tables.</footer>
+</div>
+<script>
+let cD=null,cS=null,dI=null,aSD=[],abbr={};
+fetch('data/index.json').then(r=>r.json()).then(i=>{dI=i;
+const ps=[];for(const[s,fs] of Object.entries(i))for(const f of fs)ps.push(fetch('data/'+f.filename).then(r=>r.json()));
+Promise.all(ps).then(d=>{aSD=d});});
+fetch('data/abbreviations.json').then(r=>r.json()).then(a=>{abbr=a}).catch(()=>{});
 
-    // Load index
-    fetch('data/index.json').then(r=>r.json()).then(idx=>{
-        dataIndex=idx;
-        // Preload all data for search
-        const promises=[];
-        for(const[sub,files] of Object.entries(idx))
-            for(const f of files)
-                promises.push(fetch('data/'+f.filename).then(r=>r.json()));
-        Promise.all(promises).then(ds=>{ allSearchData=ds; });
-    });
+function openSub(n){if(!dI||!dI[n])return;cS=n;
+const v=document.getElementById('vw');v.classList.add('act');
+document.getElementById('vt').textContent=n;
+document.getElementById('tbody').innerHTML='<tr><td colspan="10" style="text-align:center;padding:2rem;color:#999">Loading...</td></tr>';
+document.getElementById('th').innerHTML='';document.getElementById('tabs').innerHTML='';
+document.getElementById('vrpt').innerHTML='';
+const fs=[...dI[n]].sort((a,b)=>b.fiscal_year.localeCompare(a.fiscal_year)||a.source_type.localeCompare(b.source_type));
+Promise.all(fs.map(f=>fetch('data/'+f.filename).then(r=>r.json()))).then(ds=>{
+const tabs=document.getElementById('tabs');tabs.innerHTML='';
+ds.forEach((d,i)=>{const t=document.createElement('div');
+t.className='t'+(i===0?' act':'');
+const s=d.metadata.source_type;
+t.textContent=d.metadata.fiscal_year+' '+s.charAt(0).toUpperCase()+s.slice(1);
+t.onclick=()=>{document.querySelectorAll('.t').forEach(x=>x.classList.remove('act'));t.classList.add('act');renderT(d);};
+tabs.appendChild(t);});renderT(ds[0]);});
+v.scrollIntoView({behavior:'smooth',block:'start'})}
 
-    function openSub(name){
-        if(!dataIndex||!dataIndex[name]) return;
-        curSub=name;
-        const v=document.getElementById('viewer');
-        v.classList.add('active');
-        document.getElementById('vTitle').textContent=name;
-        document.getElementById('tBody').innerHTML='<tr><td colspan="10" style="text-align:center;padding:2rem;color:#999">Loading...</td></tr>';
-        document.getElementById('tHead').innerHTML='';
-        document.getElementById('tabs').innerHTML='';
+function renderT(d){cD=d;
+const h=document.getElementById('th'),b=document.getElementById('tbody');
+// Show report info
+const m=d.metadata;
+let rptHtml='';
+if(m.report_number){rptHtml=m.report_number;if(m.pdf_url)rptHtml='<a href="'+m.pdf_url+'" target="_blank">'+m.report_number+' &#8599;</a>';}
+if(m.table_pages)rptHtml+=' (Table: pp. '+m.table_pages.join(', ')+')';
+document.getElementById('vrpt').innerHTML=rptHtml;
+let hr='<tr><th>Line Item</th>';for(const c of d.columns)hr+='<th>'+esc(c)+'</th>';hr+='</tr>';h.innerHTML=hr;
+let br='';for(const it of d.line_items){const lv=it.level||0;
+br+='<tr class="lv'+lv+'" data-name="'+esc(it.name).toLowerCase()+'"><td class="in'+lv+'">'+esc(it.name)+'</td>';
+for(const a of it.amounts){if(a===null||a===undefined)br+='<td></td>';else br+='<td class="'+(a<0?'neg':'')+'">'+fmt(a)+'</td>';}
+br+='</tr>';}b.innerHTML=br;}
 
-        const files=dataIndex[name];
-        // Sort: FY desc, house before senate
-        files.sort((a,b)=>{
-            if(a.fiscal_year!==b.fiscal_year) return b.fiscal_year.localeCompare(a.fiscal_year);
-            return a.source_type.localeCompare(b.source_type);
-        });
+function fmt(n){if(n===null||n===undefined)return'';if(n===0)return'---';const a=Math.abs(n);return n<0?'('+a.toLocaleString()+')':a.toLocaleString()}
+function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML}
+function closeV(){document.getElementById('vw').classList.remove('act')}
+function exportCSV(){if(!cD)return;let c='Line Item,Level,'+cD.columns.join(',')+String.fromCharCode(10);
+for(const it of cD.line_items){const ind='  '.repeat(it.level||0);
+let r='"'+ind+it.name.replace(/"/g,'""')+'",'+(it.level||0);
+for(const a of it.amounts)r+=','+(a!==null&&a!==undefined?a:'');c+=r+String.fromCharCode(10);}
+const bl=new Blob([c],{type:'text/csv'});const u=URL.createObjectURL(bl);const a=document.createElement('a');
+a.href=u;a.download=cD.metadata.subcommittee.replace(/ /g,'_')+'_'+cD.metadata.fiscal_year+'_'+cD.metadata.source_type+'.csv';
+a.click();URL.revokeObjectURL(u)}
 
-        // Load all files for this subcommittee
-        Promise.all(files.map(f=>fetch('data/'+f.filename).then(r=>r.json()))).then(datasets=>{
-            const tabs=document.getElementById('tabs');
-            tabs.innerHTML='';
-            datasets.forEach((d,i)=>{
-                const t=document.createElement('div');
-                t.className='tab'+(i===0?' active':'');
-                const src=d.metadata.source_type;
-                t.textContent=d.metadata.fiscal_year+' '+src.charAt(0).toUpperCase()+src.slice(1);
-                t.onclick=()=>{
-                    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-                    t.classList.add('active');
-                    renderTable(d);
-                };
-                tabs.appendChild(t);
-            });
-            renderTable(datasets[0]);
-        });
-        v.scrollIntoView({behavior:'smooth',block:'start'});
-    }
+let sT=null;
+function doSearch(q){clearTimeout(sT);const dr=document.getElementById('sd');
+if(q.length<2){dr.classList.remove('act');return;}
+sT=setTimeout(()=>{
+let ql=q.toLowerCase();
+// Check abbreviations
+let expanded=null;
+for(const[ab,full] of Object.entries(abbr)){if(ab.toLowerCase()===ql){expanded=full.toLowerCase();break;}}
+const results=[];
+for(const d of aSD){const m=d.metadata;const cols=d.columns||[];
+let ri=2;for(let i=0;i<cols.length;i++){const cl=cols[i].toLowerCase();if((cl.includes('bill')||cl.includes('recommend'))&&!cl.includes('vs')){ri=i;break;}}
+for(const it of d.line_items||[]){const nl=it.name.toLowerCase();
+if(nl.includes(ql)||(expanded&&nl.includes(expanded))){
+const amt=it.amounts&&ri<it.amounts.length?it.amounts[ri]:null;
+results.push({name:it.name,sub:m.subcommittee,fy:m.fiscal_year,src:m.source_type,amt});
+if(results.length>=40)break;}}if(results.length>=40)break;}
+if(!results.length)dr.innerHTML='<div class="sri"><span class="srm">No results'+(expanded?' (searched: '+q.toUpperCase()+' = '+expanded+')':'')+'</span></div>';
+else{let h='';if(expanded)h+='<div class="sri" style="background:#f8f8f0"><span class="srm">Showing results for <b>'+q.toUpperCase()+'</b> ('+expanded+')</span></div>';
+for(const r of results){const aS=r.amt!==null?'$'+fmt(r.amt)+'K':'';
+h+='<div class="sri" onclick="openSubAndHL(\''+esc(r.sub)+'\',\''+esc(r.name.replace(/'/g,"\\'"))+'\')"><div class="srn">'+esc(r.name)+'</div><div class="srm">'+r.sub+' | '+r.fy+' '+r.src+(aS?' | <span class="sra">'+aS+'</span>':'')+'</div></div>';}
+dr.innerHTML=h;}dr.classList.add('act');},300)}
 
-    function renderTable(d){
-        curData=d;
-        const head=document.getElementById('tHead');
-        const body=document.getElementById('tBody');
-        let h='<tr><th>Line Item</th>';
-        for(const c of d.columns) h+='<th>'+esc(c)+'</th>';
-        h+='</tr>';
-        head.innerHTML=h;
-        let b='';
-        for(const item of d.line_items){
-            const lv=item.level||0;
-            b+='<tr class="lv'+lv+'"><td class="in'+lv+'">'+esc(item.name)+'</td>';
-            for(const a of item.amounts){
-                if(a===null||a===undefined) b+='<td></td>';
-                else b+='<td class="'+(a<0?'neg':'')+'">'+fmt(a)+'</td>';
-            }
-            b+='</tr>';
-        }
-        body.innerHTML=b;
-    }
+function openSubAndHL(sub,name){
+document.getElementById('sd').classList.remove('act');
+openSub(sub);
+// After data loads, scroll to and highlight the matching row
+setTimeout(()=>{
+const rows=document.querySelectorAll('#tbody tr');
+const nl=name.toLowerCase();
+for(const row of rows){
+if(row.dataset.name&&row.dataset.name.includes(nl.substring(0,30))){
+row.classList.add('hl');row.scrollIntoView({behavior:'smooth',block:'center'});
+setTimeout(()=>row.classList.remove('hl'),3000);break;}}
+},800);}
 
-    function fmt(n){
-        if(n===null||n===undefined)return'';
-        if(n===0)return'---';
-        const a=Math.abs(n); const s=a.toLocaleString();
-        return n<0?'('+s+')':s;
-    }
-
-    function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
-    function closeViewer(){document.getElementById('viewer').classList.remove('active');}
-
-    function exportCSV(){
-        if(!curData) return;
-        let csv='Line Item,Level,'+curData.columns.join(',')+String.fromCharCode(10);
-        for(const item of curData.line_items){
-            const indent='  '.repeat(item.level||0);
-            let row='"'+indent+item.name.replace(/"/g,'""')+'",'+(item.level||0);
-            for(const a of item.amounts) row+=','+(a!==null&&a!==undefined?a:'');
-            csv+=row+String.fromCharCode(10);
-        }
-        const blob=new Blob([csv],{type:'text/csv'});
-        const url=URL.createObjectURL(blob);
-        const a=document.createElement('a');
-        const m=curData.metadata;
-        a.href=url;
-        a.download=m.subcommittee.replace(/ /g,'_')+'_'+m.fiscal_year+'_'+m.source_type+'.csv';
-        a.click();
-        URL.revokeObjectURL(url);
-    }
-
-    let sTimer=null;
-    function doSearch(q){
-        clearTimeout(sTimer);
-        const drop=document.getElementById('searchDrop');
-        if(q.length<2){drop.classList.remove('active');return;}
-        sTimer=setTimeout(()=>{
-            const ql=q.toLowerCase();
-            const results=[];
-            for(const d of allSearchData){
-                const meta=d.metadata;
-                const cols=d.columns||[];
-                let ri=2;
-                for(let i=0;i<cols.length;i++){
-                    const cl=cols[i].toLowerCase();
-                    if((cl.includes('bill')||cl.includes('recommend'))&&!cl.includes('vs')){ri=i;break;}
-                }
-                for(const item of d.line_items||[]){
-                    if(item.name.toLowerCase().includes(ql)){
-                        const amt=item.amounts&&ri<item.amounts.length?item.amounts[ri]:null;
-                        results.push({name:item.name,sub:meta.subcommittee,fy:meta.fiscal_year,src:meta.source_type,amt});
-                        if(results.length>=30) break;
-                    }
-                }
-                if(results.length>=30) break;
-            }
-            if(!results.length){
-                drop.innerHTML='<div class="search-result-item"><span class="sr-meta">No results</span></div>';
-            } else {
-                let h='';
-                for(const r of results){
-                    const aStr=r.amt!==null?'$'+fmt(r.amt)+'K':'';
-                    h+='<div class="search-result-item" onclick="openSub(\''+r.sub+'\')"><div class="sr-name">'+esc(r.name)+'</div><div class="sr-meta">'+r.sub+' | '+r.fy+' '+r.src+(aStr?' | <span class="sr-amount">'+aStr+'</span>':'')+'</div></div>';
-                }
-                drop.innerHTML=h;
-            }
-            drop.classList.add('active');
-        },300);
-    }
-
-    document.addEventListener('click',e=>{
-        if(!e.target.closest('.header-search')&&!e.target.closest('.search-dropdown'))
-            document.getElementById('searchDrop').classList.remove('active');
-    });
-    </script>
+document.addEventListener('click',e=>{if(!e.target.closest('.hs')&&!e.target.closest('.sd'))document.getElementById('sd').classList.remove('act')});
+</script>
 </body>
 </html>
