@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appropriations Line Items Explorer</title>
+    <style>
+        :root {
+            --navy: #1a2744;
+            --blue: #2a5298;
+            --light-blue: #3d7edb;
+            --pale-blue: #e8f0fe;
+            --bg: #f5f7fa;
+            --card-bg: #ffffff;
+            --border: #dce3ed;
+            --text: #2c3e50;
+            --text-light: #7f8c9b;
+            --green: #27ae60;
+            --red: #c0392b;
+            --gold: #b8860b;
+            --shadow: 0 1px 4px rgba(0,0,0,0.08);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 100%);
+            color: white;
+            padding: 1.25rem 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-inner {
+            max-width: 1500px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        header h1 {
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        header .subtitle {
+            font-size: 0.82rem;
+            opacity: 0.75;
+            margin-top: 0.1rem;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .header-search {
+            display: flex;
+            align-items: center;
+            background: rgba(255,255,255,0.15);
+            border-radius: 6px;
+            padding: 0.35rem 0.75rem;
+        }
+
+        .header-search input {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 0.85rem;
+            width: 280px;
+            outline: none;
+        }
+
+        .header-search input::placeholder { color: rgba(255,255,255,0.5); }
+
+        .container {
+            max-width: 1500px;
+            margin: 0 auto;
+            padding: 1.25rem 1.5rem;
+        }
+
+        /* Stats row */
+        .stats-row {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+            flex-wrap: wrap;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            flex: 1;
+            min-width: 150px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .stat-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        .stat-icon.blue { background: var(--pale-blue); }
+        .stat-icon.green { background: #e8f5e9; }
+        .stat-icon.gold { background: #fff8e1; }
+        .stat-icon.red { background: #fce4ec; }
+
+        .stat-label {
+            font-size: 0.7rem;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--navy);
+            line-height: 1.2;
+        }
+
+        /* Search results dropdown */
+        .search-dropdown {
+            position: fixed;
+            top: 60px;
+            right: 20px;
+            width: 500px;
+            max-height: 400px;
+            overflow-y: auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: var(--shadow-md);
+            z-index: 200;
+            display: none;
+        }
+
+        .search-dropdown.active { display: block; }
+
+        .search-result-item {
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .search-result-item:hover { background: #f8fafc; }
+        .search-result-item .sr-name { font-weight: 500; }
+        .search-result-item .sr-meta { font-size: 0.75rem; color: var(--text-light); }
+        .search-result-item .sr-amount { font-weight: 600; color: var(--navy); }
+
+        /* Subcommittee grid */
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: var(--navy);
+        }
+
+        .sub-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .sub-card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            transition: transform 0.12s, box-shadow 0.12s;
+            border-left: 3px solid var(--blue);
+        }
+
+        .sub-card:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .sub-card h3 {
+            font-size: 0.9rem;
+            margin-bottom: 0.4rem;
+            color: var(--navy);
+        }
+
+        .sub-card .meta-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.3rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.1rem 0.45rem;
+            border-radius: 10px;
+            font-size: 0.65rem;
+            font-weight: 500;
+        }
+
+        .badge.house { background: #e3f2fd; color: #1565c0; }
+        .badge.senate { background: #fce4ec; color: #c62828; }
+        .badge.conference { background: #e8f5e9; color: #2e7d32; }
+
+        /* Viewer panel */
+        .viewer {
+            background: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: var(--shadow-md);
+            margin-bottom: 1.5rem;
+            display: none;
+            overflow: hidden;
+        }
+
+        .viewer.active { display: block; }
+
+        .viewer-header {
+            padding: 0.75rem 1.25rem;
+            background: var(--navy);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .viewer-header h2 { font-size: 1rem; font-weight: 600; }
+
+        .viewer-controls {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .btn {
+            padding: 0.3rem 0.7rem;
+            border-radius: 5px;
+            border: 1px solid rgba(255,255,255,0.3);
+            background: transparent;
+            color: white;
+            cursor: pointer;
+            font-size: 0.78rem;
+            transition: background 0.15s;
+        }
+
+        .btn:hover { background: rgba(255,255,255,0.15); }
+
+        .btn-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.3rem;
+            cursor: pointer;
+            opacity: 0.7;
+            line-height: 1;
+        }
+
+        .btn-close:hover { opacity: 1; }
+
+        /* Source tabs */
+        .tabs-bar {
+            display: flex;
+            background: #f0f4f8;
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+        }
+
+        .tab {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-light);
+            white-space: nowrap;
+            border-bottom: 2px solid transparent;
+            transition: all 0.15s;
+        }
+
+        .tab:hover { color: var(--text); }
+
+        .tab.active {
+            color: var(--blue);
+            border-bottom-color: var(--blue);
+            background: white;
+        }
+
+        /* Data table */
+        .table-wrap {
+            overflow-x: auto;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .dtable {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.8rem;
+        }
+
+        .dtable th {
+            background: var(--navy);
+            color: white;
+            padding: 0.5rem 0.7rem;
+            text-align: right;
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-size: 0.75rem;
+        }
+
+        .dtable th:first-child {
+            text-align: left;
+            min-width: 280px;
+            position: sticky;
+            left: 0;
+            z-index: 11;
+        }
+
+        .dtable td {
+            padding: 0.3rem 0.7rem;
+            border-bottom: 1px solid #eef1f5;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+            white-space: nowrap;
+        }
+
+        .dtable td:first-child {
+            text-align: left;
+            position: sticky;
+            left: 0;
+            background: inherit;
+            z-index: 5;
+        }
+
+        .dtable tr:hover td { background: #f0f5ff !important; }
+
+        .dtable tr.lv0 { font-weight: 700; }
+        .dtable tr.lv0 td { background: #edf2f7; border-top: 2px solid var(--border); }
+        .dtable tr.lv1 { font-weight: 600; }
+        .dtable tr.lv1 td { background: #f5f8fb; }
+
+        .in0 { padding-left: 0.7rem !important; }
+        .in1 { padding-left: 1.6rem !important; }
+        .in2 { padding-left: 2.5rem !important; }
+        .in3 { padding-left: 3.4rem !important; }
+
+        .neg { color: var(--red); }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 1.5rem;
+            color: var(--text-light);
+            font-size: 0.75rem;
+            border-top: 1px solid var(--border);
+            margin-top: 2rem;
+        }
+
+        footer a { color: var(--blue); text-decoration: none; }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-light);
+        }
+
+        .empty-state h2 { color: var(--text); margin-bottom: 0.5rem; }
+
+        /* Tooltip */
+        .info-tip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+            margin-left: 0.3rem;
+            opacity: 0.6;
+        }
+
+        .info-tip:hover::after {
+            content: attr(data-tip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--navy);
+            color: white;
+            padding: 0.4rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            white-space: nowrap;
+            z-index: 20;
+        }
+
+        @media (max-width: 768px) {
+            .header-search input { width: 150px; }
+            .sub-grid { grid-template-columns: 1fr; }
+            .stats-row { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-inner">
+            <div>
+                <h1>Appropriations Line Items Explorer</h1>
+                <div class="subtitle">Spending data extracted from Congressional committee reports</div>
+            </div>
+            <div class="header-right">
+                <div class="header-search">
+                    <span style="opacity:0.5;margin-right:0.5rem">&#128269;</span>
+                    <input type="text" id="globalSearch" placeholder="Search line items..."
+                           oninput="doSearch(this.value)">
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="search-dropdown" id="searchDrop"></div>
+
+    <div class="container">
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-icon blue">&#127963;</div>
+                <div><div class="stat-label">Subcommittees</div><div class="stat-value" id="s1">0</div></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon green">&#128196;</div>
+                <div><div class="stat-label">Reports</div><div class="stat-value" id="s2">0</div></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon gold">&#128200;</div>
+                <div><div class="stat-label">Line Items</div><div class="stat-value" id="s3">0</div></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon red">&#128197;</div>
+                <div><div class="stat-label">Fiscal Years</div><div class="stat-value" id="s4">0</div></div>
+            </div>
+        </div>
+
+        <!-- Viewer -->
+        <div class="viewer" id="viewer">
+            <div class="viewer-header">
+                <h2 id="vTitle"></h2>
+                <div class="viewer-controls">
+                    <button class="btn" onclick="exportCurrent()">&#8615; CSV</button>
+                    <button class="btn" onclick="exportAll()">&#8615; All Years CSV</button>
+                    <button class="btn-close" onclick="closeViewer()">&times;</button>
+                </div>
+            </div>
+            <div class="tabs-bar" id="tabs"></div>
+            <div class="table-wrap">
+                <table class="dtable">
+                    <thead id="tHead"></thead>
+                    <tbody id="tBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Grid -->
+        <div class="section-title">Appropriations Subcommittees</div>
+        {% if summary %}
+        <div class="sub-grid" id="grid">
+            {% for sub, years in summary|dictsort %}
+            <div class="sub-card" onclick="openSub('{{ sub }}')">
+                <h3>{{ sub }}</h3>
+                <div class="meta-row">
+                    {% for fy, sources in years|dictsort(reverse=true) %}
+                        {% for src in sources %}
+                        <span class="badge {{ src.source_type }}">
+                            {{ fy }} {{ src.source_type[0]|upper }}
+                        </span>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <h2>No data yet</h2>
+            <p>Run <code>python3 batch_extract.py</code> to extract data from committee reports.</p>
+        </div>
+        {% endif %}
+
+        <footer>
+            Data from committee reports on <a href="https://www.congress.gov/crs-appropriations-status-table" target="_blank">congress.gov</a>.
+            Amounts in thousands of dollars unless noted.
+            <span class="info-tip" data-tip="Extracted using Claude API from PDF tables">&#9432;</span>
+        </footer>
+    </div>
+
+    <script>
+    let curData = null, curSub = null;
+
+    // Stats
+    fetch('/api/summary').then(r=>r.json()).then(s=>{
+        let subs=Object.keys(s).length, rpts=0, items=0, yrs=new Set();
+        for(const[_,fys] of Object.entries(s))
+            for(const[fy,srcs] of Object.entries(fys)){
+                yrs.add(fy);
+                for(const src of srcs){rpts++;items+=src.num_items;}
+            }
+        document.getElementById('s1').textContent=subs;
+        document.getElementById('s2').textContent=rpts;
+        document.getElementById('s3').textContent=items.toLocaleString();
+        document.getElementById('s4').textContent=yrs.size;
+    });
+
+    function openSub(name){
+        curSub=name;
+        const v=document.getElementById('viewer');
+        v.classList.add('active');
+        document.getElementById('vTitle').textContent=name;
+        document.getElementById('tBody').innerHTML='<tr><td colspan="10" style="text-align:center;padding:2rem;color:#999">Loading...</td></tr>';
+        document.getElementById('tHead').innerHTML='';
+        document.getElementById('tabs').innerHTML='';
+
+        fetch('/api/data/'+encodeURIComponent(name)).then(r=>r.json()).then(ds=>{
+            if(ds.error){document.getElementById('tBody').innerHTML='<tr><td>No data</td></tr>';return;}
+
+            // Sort: FY desc, then house before senate
+            ds.sort((a,b)=>{
+                const ya=a.metadata.fiscal_year, yb=b.metadata.fiscal_year;
+                if(ya!==yb)return yb.localeCompare(ya);
+                return a.metadata.source_type.localeCompare(b.metadata.source_type);
+            });
+
+            const tabs=document.getElementById('tabs');
+            tabs.innerHTML='';
+            ds.forEach((d,i)=>{
+                const t=document.createElement('div');
+                t.className='tab'+(i===0?' active':'');
+                const src=d.metadata.source_type;
+                t.textContent=`${d.metadata.fiscal_year} ${src.charAt(0).toUpperCase()+src.slice(1)}`;
+                t.onclick=()=>{
+                    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+                    t.classList.add('active');
+                    renderTable(d);
+                };
+                tabs.appendChild(t);
+            });
+            renderTable(ds[0]);
+        });
+
+        v.scrollIntoView({behavior:'smooth',block:'start'});
+    }
+
+    function renderTable(d){
+        curData=d;
+        const head=document.getElementById('tHead');
+        const body=document.getElementById('tBody');
+
+        let h='<tr><th>Line Item</th>';
+        for(const c of d.columns) h+=`<th>${esc(c)}</th>`;
+        h+='</tr>';
+        head.innerHTML=h;
+
+        let b='';
+        for(const item of d.line_items){
+            const lv=item.level||0;
+            b+=`<tr class="lv${lv}">`;
+            b+=`<td class="in${lv}">${esc(item.name)}</td>`;
+            for(const a of item.amounts){
+                if(a===null||a===undefined) b+='<td></td>';
+                else{
+                    const cls=a<0?'neg':'';
+                    b+=`<td class="${cls}">${fmt(a)}</td>`;
+                }
+            }
+            b+='</tr>';
+        }
+        body.innerHTML=b;
+    }
+
+    function fmt(n){
+        if(n===null||n===undefined)return'';
+        if(n===0)return'---';
+        const a=Math.abs(n);
+        const s=a.toLocaleString();
+        return n<0?`(${s})`:s;
+    }
+
+    function esc(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML;}
+
+    function closeViewer(){document.getElementById('viewer').classList.remove('active');}
+
+    function exportCurrent(){
+        if(!curData)return;
+        const m=curData.metadata;
+        window.open(`/export/${encodeURIComponent(m.subcommittee)}/${m.fiscal_year}/${m.source_type}.csv`);
+    }
+
+    function exportAll(){
+        if(!curSub)return;
+        window.open(`/export/${encodeURIComponent(curSub)}/all.csv`);
+    }
+
+    // Search
+    let sTimer=null;
+    function doSearch(q){
+        clearTimeout(sTimer);
+        const drop=document.getElementById('searchDrop');
+        if(q.length<2){drop.classList.remove('active');return;}
+        sTimer=setTimeout(()=>{
+            fetch('/api/search?q='+encodeURIComponent(q)).then(r=>r.json()).then(rs=>{
+                if(!rs.length){
+                    drop.innerHTML='<div class="search-result-item"><span class="sr-meta">No results</span></div>';
+                    drop.classList.add('active');
+                    return;
+                }
+                let h='';
+                for(const r of rs.slice(0,25)){
+                    const amt=r.recommendation;
+                    const aStr=amt!==null?'$'+fmt(amt)+'K':'';
+                    h+=`<div class="search-result-item" onclick="openSub('${esc(r.subcommittee)}')">
+                        <div class="sr-name">${esc(r.name)}</div>
+                        <div class="sr-meta">${r.subcommittee} | ${r.fiscal_year} ${r.source_type}
+                        ${aStr?' | <span class="sr-amount">'+aStr+'</span>':''}</div>
+                    </div>`;
+                }
+                if(rs.length>25) h+=`<div class="search-result-item"><span class="sr-meta">...${rs.length-25} more</span></div>`;
+                drop.innerHTML=h;
+                drop.classList.add('active');
+            });
+        },300);
+    }
+
+    document.addEventListener('click',e=>{
+        if(!e.target.closest('.header-search')&&!e.target.closest('.search-dropdown'))
+            document.getElementById('searchDrop').classList.remove('active');
+    });
+    </script>
+</body>
+</html>

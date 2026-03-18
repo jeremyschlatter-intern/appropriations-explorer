@@ -1,0 +1,6 @@
+pdfs/
+extracted/debug_*
+__pycache__/
+*.pyc
+docs/.git/
+
